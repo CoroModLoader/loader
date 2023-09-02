@@ -69,8 +69,6 @@ namespace loader
 
     void manager::impl::setup_hooks()
     {
-        using restore_t = std::function<void()>;
-
         auto table = mod_api.create_named("hooks");
 
         table["intercept_require"] = [this](const std::string &module, const sol::function &callback)
@@ -87,18 +85,18 @@ namespace loader
                 hooks.erase(it);
             };
 
-            return std::make_unique<restore_t>(restore);
+            return std::make_unique<std::function<void()>>(restore);
         };
 
         table["mock_require"] = [this](const std::string &module, const sol::function &callback)
         {
+            logger::get()->debug("registering mock for \"{}\"", module);
+
             if (mocks.contains(module))
             {
-                logger::get()->error("mock for \"{}\" already registered", module);
-                return std::make_unique<restore_t>(nullptr);
+                logger::get()->warn("mock for \"{}\" already registered, overwriting", module);
             }
 
-            logger::get()->debug("registering mock for \"{}\"", module);
             mocks.emplace(module, callback.as<mock_callback>());
 
             const auto restore = [module, this]()
@@ -106,7 +104,7 @@ namespace loader
                 mocks.erase(module);
             };
 
-            return std::make_unique<restore_t>(restore);
+            return std::make_unique<std::function<void()>>(restore);
         };
 
         lua->do_string(R"lua(
