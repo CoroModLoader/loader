@@ -10,6 +10,10 @@ namespace loader
     {
         static inline std::unique_ptr<manager> instance;
 
+      private:
+        using mock_callback = std::function<sol::object()>;
+        using hook_callback = std::function<void(const sol::object &)>;
+
       public:
         std::unique_ptr<sol::state_view> lua;
 
@@ -22,7 +26,7 @@ namespace loader
         sol::function require;
 
       public:
-        using hook_callback = std::function<void(const sol::object &)>;
+        std::map<std::string, mock_callback> mocks;
         std::multimap<std::string, hook_callback> hooks;
 
       public:
